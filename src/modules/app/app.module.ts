@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { FavoritoModule } from '../favorito/favorito.module.js';
 import { UsersModule } from '../users/users.module.js';
+import { ProgressModule } from '../progress/progress.module.js';
 import { ExercisesModule } from '../exercises/exercises.module.js';
 import { RoutinesModule } from '../routines/routines.module.js';
 
@@ -21,6 +22,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     AuthModule,
     FavoritoModule,
     UsersModule,
+    ProgressModule,
     ExercisesModule,
     RoutinesModule,
   ],
