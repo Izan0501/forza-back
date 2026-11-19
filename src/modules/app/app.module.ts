@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module.js';
 import { ProgressModule } from '../progress/progress.module.js';
 import { ExercisesModule } from '../exercises/exercises.module.js';
 import { RoutinesModule } from '../routines/routines.module.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -25,6 +26,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ProgressModule,
     ExercisesModule,
     RoutinesModule,
+    PrismaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
