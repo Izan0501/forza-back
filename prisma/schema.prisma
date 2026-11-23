@@ -1,13 +1,13 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Nutricion diaria table
 model daily_nutrition_logs {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String    @db.Uuid
@@ -22,7 +22,7 @@ model daily_nutrition_logs {
   @@unique([user_id, fecha, tipo_comida, meal_id])
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Ejercicios table
 model exercises {
   id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   muscle_group_id           Int
@@ -38,7 +38,7 @@ model exercises {
   routine_exercises         routine_exercises[]
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Favoritos table
 model favorites {
   id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String     @db.Uuid
@@ -53,7 +53,7 @@ model favorites {
   @@unique([user_id, routine_id])
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// hidratacion table
 model hydration_logs {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id     String    @db.Uuid
@@ -65,7 +65,7 @@ model hydration_logs {
   @@unique([user_id, fecha])
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// plan de comidas table
 model meal_plans {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id       String    @db.Uuid
@@ -80,7 +80,7 @@ model meal_plans {
   @@unique([user_id, dia_semana, tipo_comida])
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// comidas table
 model meals {
   id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre               String                 @db.VarChar(100)
@@ -95,13 +95,14 @@ model meals {
   meal_plans           meal_plans[]
 }
 
+// musculos a trabajar table
 model muscle_groups {
   id        Int         @id @default(autoincrement())
   nombre    String      @unique @db.VarChar(50)
   exercises exercises[]
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// nutricion table
 model nutrition_goals {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id             String    @unique @db.Uuid
@@ -114,6 +115,7 @@ model nutrition_goals {
   users               users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
+// Progreso de rutinas table
 model progress_logs {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id    String    @db.Uuid
@@ -126,7 +128,7 @@ model progress_logs {
   users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Ejercicios de rutinas table
 model routine_exercises {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   routine_id   String    @db.Uuid
@@ -141,7 +143,7 @@ model routine_exercises {
   @@unique([routine_id, dia, orden])
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Rutinas table
 model routines {
   id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id           String              @db.Uuid
@@ -158,7 +160,7 @@ model routines {
   users             users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+// Users table
 model users {
   id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   nombre               String                 @db.VarChar(100)
