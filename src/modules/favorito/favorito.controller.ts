@@ -1,18 +1,18 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  ParseIntPipe,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
 } from '@nestjs/common';
 import { FavoritoService } from './favorito.service.js';
 import { CreateFavoritoDto } from './dto/create-favorito.dto.js';
 import { UpdateFavoritoDto } from './dto/update-favorito.dto.js';
 
-@Controller(['favorito', 'favoritos'])
+@Controller('favorito')
 export class FavoritoController {
   constructor(private readonly favoritoService: FavoritoService) {}
 
@@ -27,20 +27,20 @@ export class FavoritoController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.favoritoService.findOne(id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateFavoritoDto: UpdateFavoritoDto,
   ) {
     return this.favoritoService.update(id, updateFavoritoDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.favoritoService.remove(id);
   }
 }
