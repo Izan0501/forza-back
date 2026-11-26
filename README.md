@@ -1,118 +1,227 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Forja – API REST
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST para una aplicación de entrenamiento y nutrición. Permite registrar usuarios, armar rutinas con ejercicios, guardar favoritos, registrar el progreso y llevar el control de la alimentación y la hidratación.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Está desarrollada con **NestJS** y **Prisma**, sobre una base de datos **PostgreSQL**.
 
-## Description
+## Tecnologías
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+| Tecnología | Uso |
+|---|---|
+| NestJS 12 | Framework del servidor |
+| TypeScript | Lenguaje |
+| Prisma 7 | Acceso a la base de datos (ORM) |
+| PostgreSQL 16 | Base de datos |
+| JWT (`@nestjs/jwt`) | Token de acceso al registrarse o iniciar sesión |
+| bcrypt | Encriptación de contraseñas |
+| class-validator | Validación de los datos que llegan en cada request |
 
-## Project setup
+## Requisitos
 
-```bash
-$ pnpm install
+- Node.js 24
+- pnpm (se activa con `corepack enable`)
+- PostgreSQL 16 en ejecución
+
+## Instalación y ejecución
+
+1. **Instalar las dependencias**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Crear la base de datos**
+
+   ```bash
+   createdb forza_db
+   ```
+
+3. **Crear el archivo `.env`** en la raíz del proyecto (ver [Variables de entorno](#variables-de-entorno)).
+
+4. **Crear las tablas y generar el cliente de Prisma**
+
+   ```bash
+   pnpm exec prisma migrate deploy --config prisma7.config.ts
+   pnpm exec prisma generate --config prisma7.config.ts
+   ```
+
+5. **Levantar el servidor**
+
+   ```bash
+   pnpm start:dev
+   ```
+
+El servidor queda disponible en `http://localhost:3000`.
+
+## Variables de entorno
+
+Archivo `.env` en la raíz:
+
+```env
+DATABASE_URL="postgresql://USUARIO:CONTRASEÑA@localhost:5432/forza_db?schema=public"
+JWT_SECRET="una-cadena-larga-y-aleatoria"
+JWT_EXPIRES_IN="1d"
 ```
 
-## Compile and run the project
+| Variable | Descripción |
+|---|---|
+| `DATABASE_URL` | Conexión a PostgreSQL |
+| `JWT_SECRET` | Clave para firmar los tokens. Es obligatoria: sin ella el servidor no arranca |
+| `JWT_EXPIRES_IN` | Duración del token (por defecto `1d`) |
 
-```bash
-# development
-$ pnpm run start
+## Estructura del proyecto
 
-# watch mode
-$ pnpm run start:dev
+Cada módulo tiene su `controller` (recibe las requests), su `service` (tiene la lógica) y una carpeta `dto/` (define y valida los datos de entrada).
 
-# production mode
-$ pnpm run start:prod
+```
+src/
+├── main.ts                  # Arranque de la app y validación global
+├── generated/prisma/        # Cliente de Prisma (se genera, no se sube a Git)
+└── modules/
+    ├── app/                 # Módulo raíz
+    ├── prisma/              # Conexión a la base de datos
+    ├── auth/                # Registro y login
+    ├── users/               # CRUD de usuarios
+    ├── muscle-groups/       # Grupos musculares
+    ├── exercises/           # Ejercicios
+    ├── routines/            # Rutinas
+    ├── favorito/            # Favoritos (ejercicios o rutinas)
+    ├── progress/            # Progreso de rutinas
+    └── nutrition/           # Nutrición, dividido en 5 submódulos
+        ├── meals/
+        ├── nutrition-goals/
+        ├── hydration/
+        ├── meal-plans/
+        └── daily-logs/
 ```
 
-## Run tests
+## Endpoints
 
-```bash
-# unit tests
-$ pnpm run test
+Todos devuelven y reciben JSON.
 
-# e2e tests
-$ pnpm run test:e2e
+### Autenticación
 
-# test coverage
-$ pnpm run test:cov
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/register` | Crea un usuario y devuelve el usuario y su token |
+| POST | `/auth/login` | Valida las credenciales y devuelve el usuario y su token |
+
+### CRUD básico
+
+Estos módulos tienen las mismas 5 rutas: `POST /ruta`, `GET /ruta`, `GET /ruta/:id`, `PATCH /ruta/:id` y `DELETE /ruta/:id`.
+
+| Ruta | Descripción |
+|---|---|
+| `/users` | Usuarios |
+| `/muscle-groups` | Grupos musculares (el `id` es un número) |
+| `/exercises` | Ejercicios |
+| `/routines` | Rutinas de un usuario |
+| `/favorito` | Favoritos: se envía `exercise_id` o `routine_id`, uno solo |
+| `/progress` | Registros de progreso de un usuario |
+
+### Nutrición
+
+| Ruta | Operaciones |
+|---|---|
+| `/nutrition/meals` | CRUD del catálogo de comidas |
+| `/nutrition/goals/:userId` | `GET`, `PUT` (crea o actualiza) y `DELETE` de las metas del usuario |
+| `/nutrition/hydration` | `PUT` (crea o actualiza el día), `GET ?userId=&fecha=` y `DELETE /:id` |
+| `/nutrition/plans` | CRUD del plan semanal. Filtros: `?userId=&dia=` |
+| `/nutrition/logs` | CRUD de las comidas del día. Filtros: `?userId=&fecha=` |
+
+Las fechas se envían como `YYYY-MM-DD` y las horas como `HH:mm`.
+
+## Ejemplo de uso
+
+**1. Registrar un usuario** – `POST /auth/register`
+
+```json
+{
+  "nombre": "Ana Pérez",
+  "email": "ana@forja.com",
+  "password": "Secreta123",
+  "objetivo": "Ganar masa muscular"
+}
 ```
 
-## Deployment
+Respuesta (201):
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+```json
+{
+  "user": { "id": "…", "nombre": "Ana Pérez", "email": "ana@forja.com" },
+  "access_token": "eyJhbGciOi…"
+}
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+**2. Iniciar sesión** – `POST /auth/login`
 
-## Observability
+```json
+{ "email": "ana@forja.com", "password": "Secreta123" }
+```
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+**3. Crear una comida** – `POST /nutrition/meals`
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+```json
+{
+  "nombre": "Pollo con arroz",
+  "calorias": 550,
+  "proteinas": 42.5,
+  "carbohidratos": 60.25,
+  "grasas": 12
+}
+```
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+**4. Asignarla al plan semanal** – `POST /nutrition/plans`
 
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
+```json
+{
+  "user_id": "<id del usuario>",
+  "meal_id": "<id de la comida>",
+  "dia_semana": "Lunes",
+  "tipo_comida": "Almuerzo",
+  "hora_sugerida": "13:30"
+}
+```
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+## Validaciones y respuestas
 
-## Resources
+Los datos de cada request se validan antes de llegar al service. Si se envía un campo que el DTO no define, la API responde con error.
 
-Check out a few resources that may come in handy when working with NestJS:
+| Código | Cuándo ocurre |
+|---|---|
+| 200 / 201 | La operación se realizó |
+| 400 | Datos inválidos, UUID mal formado o fecha inexistente |
+| 401 | Credenciales incorrectas en el login |
+| 404 | El registro no existe |
+| 409 | Registro duplicado (por ejemplo, email ya registrado) o elemento en uso |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Las contraseñas se guardan encriptadas con bcrypt y nunca se devuelven en las respuestas.
 
-## Support
+## Base de datos
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+El esquema está en `prisma/schema.prisma` y tiene 12 tablas:
 
-## Stay in touch
+| Área | Tablas |
+|---|---|
+| Usuarios | `users` |
+| Entrenamiento | `muscle_groups`, `exercises`, `routines`, `routine_exercises` |
+| Favoritos y progreso | `favorites`, `progress_logs` |
+| Nutrición | `meals`, `nutrition_goals`, `hydration_logs`, `meal_plans`, `daily_nutrition_logs` |
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Los datos de un usuario (rutinas, favoritos, progreso y nutrición) se eliminan automáticamente al borrar al usuario.
 
-## License
+## Scripts
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Comando | Descripción |
+|---|---|
+| `pnpm start:dev` | Servidor en modo desarrollo (se reinicia al guardar) |
+| `pnpm build` | Compila el proyecto |
+| `pnpm start:prod` | Ejecuta la versión compilada |
+| `pnpm lint` | Revisa el código con oxlint |
+| `pnpm format` | Da formato al código con Prettier |
+
+## Limitaciones
+
+- Las rutas todavía no están protegidas con JWT: el token se genera al registrarse o iniciar sesión, pero ningún endpoint lo exige.
+- La tabla `routine_exercises` existe en la base de datos, pero no tiene endpoints.
+- El proyecto no incluye tests automáticos.
