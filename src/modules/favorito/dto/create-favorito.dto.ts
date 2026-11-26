@@ -1,23 +1,14 @@
-import {
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsPositive,
-  IsString,
-} from 'class-validator';
+import { IsOptional, IsUUID } from 'class-validator';
 
 export class CreateFavoritoDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsUUID()
+  user_id: string;
 
   @IsOptional()
-  @IsInt()
-  @IsPositive()
-  userId?: number;
+  @IsUUID()
+  exercise_id?: string;
 
   @IsOptional()
-  @IsInt()
-  @IsPositive()
-  productId?: number;
+  @IsUUID()
+  routine_id?: string;
 }
