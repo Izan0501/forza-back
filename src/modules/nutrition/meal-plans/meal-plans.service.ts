@@ -1,73 +1,65 @@
 import {
-  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { meal_plans, meals } from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { isPrismaUniqueConstraintError } from '../../prisma/prisma-error.util.js';
+import { MealsService } from '../meals/meals.service.js';
+import { formatMeal } from '../nutrition.util.js';
 import { CreateMealPlanDto } from './dto/create-meal-plan.dto.js';
 import { UpdateMealPlanDto } from './dto/update-meal-plan.dto.js';
 
+// Un ítem del plan junto con los datos de su comida
+type MealPlanWithMeal = meal_plans & { meals: meals };
+
+// La hora se guarda como Time en la base: la pasamos de "13:30" a Date y viceversa
+function parseTime(hora: string): Date {
+  return new Date(`1970-01-01T${hora}:00.000Z`);
+}
+
+function formatTime(hora: Date): string {
+  return hora.toISOString().slice(11, 16);
+}
+
 @Injectable()
 export class MealPlansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mealsService: MealsService,
+  ) {}
 
-  // Convierte Date de base de datos a formato "HH:mm"
-  private formatTime(date: Date): string {
-    if (!date) return '';
-    const hours = date.getUTCHours().toString().padStart(2, '0');
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  }
-
-  // Convierte string "HH:mm" a Date UTC (fijando fecha base 1970-01-01)
-  private parseTime(timeStr: string): Date {
-    return new Date(`1970-01-01T${timeStr}:00.000Z`);
-  }
-
-  // Helper para devolver el plan formateado con su comida asociada
-  private formatMealPlan(plan: any) {
-    const formatted: any = {
+  // Devuelve el plan con la hora como "HH:mm" y los números de la comida
+  private formatPlan(plan: MealPlanWithMeal) {
+    return {
       ...plan,
-      hora_sugerida:
-        plan.hora_sugerida instanceof Date
-          ? this.formatTime(plan.hora_sugerida)
-          : plan.hora_sugerida,
+      hora_sugerida: formatTime(plan.hora_sugerida),
+      meals: formatMeal(plan.meals),
     };
-
-    // Si viene la relación con meals por el include, formateamos sus Decimal
-    if (plan.meals) {
-      formatted.meal = {
-        ...plan.meals,
-        calorias: Number(plan.meals.calorias),
-        proteinas: Number(plan.meals.proteinas),
-        carbohidratos: Number(plan.meals.carbohidratos),
-        grasas: Number(plan.meals.grasas),
-      };
-      formatted.meals = formatted.meal;
-    }
-
-    return formatted;
   }
 
-  // Crear un ítem en el plan semanal
+  // Mensaje para cuando ya hay una comida en ese día y momento
+  private duplicateMessage(dia: string, tipo: string) {
+    return `Ya existe una comida asignada para ${dia} en ${tipo}`;
+  }
+
+  // Asignar una comida al plan semanal
   async create(dto: CreateMealPlanDto) {
-    // 1. Validar que el usuario exista
+    // 1. El usuario y la comida tienen que existir
     const user = await this.prisma.users.findUnique({
       where: { id: dto.user_id },
     });
+
     if (!user) {
-      throw new NotFoundException(`Usuario con ID ${dto.user_id} no encontrado`);
+      throw new NotFoundException(
+        `Usuario con ID ${dto.user_id} no encontrado`,
+      );
     }
 
-    // 2. Validar que la comida exista en el catálogo
-    const meal = await this.prisma.meals.findUnique({
-      where: { id: dto.meal_id },
-    });
-    if (!meal) {
-      throw new NotFoundException(`Comida con ID ${dto.meal_id} no encontrada`);
-    }
+    await this.mealsService.findOne(dto.meal_id);
 
-    // 3. Crear el plan guardando la hora en formato Time(6)
+    // 2. Crear el ítem (la base no permite repetir usuario + día + tipo de comida)
     try {
       const plan = await this.prisma.meal_plans.create({
         data: {
@@ -75,97 +67,92 @@ export class MealPlansService {
           meal_id: dto.meal_id,
           dia_semana: dto.dia_semana,
           tipo_comida: dto.tipo_comida,
-          hora_sugerida: this.parseTime(dto.hora_sugerida),
+          hora_sugerida: parseTime(dto.hora_sugerida),
         },
-        include: {
-          meals: true, // Trae los datos de la comida relacionada
-        },
+        include: { meals: true },
       });
 
-      return this.formatMealPlan(plan);
-    } catch (error: any) {
-      // Clave única compuesta: @@unique([user_id, dia_semana, tipo_comida])
-      if (error?.code === 'P2002') {
-        throw new BadRequestException(
-          `Ya existe una comida asignada para ${dto.dia_semana} en ${dto.tipo_comida}`,
+      return this.formatPlan(plan);
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictException(
+          this.duplicateMessage(dto.dia_semana, dto.tipo_comida),
         );
       }
+
       throw error;
     }
   }
 
-  // Listar planes con filtros opcionales (userId y día)
+  // Listar ítems del plan; userId y dia son filtros opcionales
   async findAll(userId?: string, dia?: string) {
-    const where: any = {};
-    if (userId) where.user_id = userId;
-    if (dia) where.dia_semana = dia;
-
     const plans = await this.prisma.meal_plans.findMany({
-      where,
-      include: {
-        meals: true, // Relación con la tabla meals
-      },
+      where: { user_id: userId, dia_semana: dia },
+      include: { meals: true },
       orderBy: [{ dia_semana: 'asc' }, { hora_sugerida: 'asc' }],
     });
 
-    return plans.map((plan) => this.formatMealPlan(plan));
+    return plans.map((plan) => this.formatPlan(plan));
   }
 
-  // Obtener un plan por su ID
+  // Buscar un ítem del plan por su ID
   async findOne(id: string) {
     const plan = await this.prisma.meal_plans.findUnique({
       where: { id },
-      include: {
-        meals: true,
-      },
+      include: { meals: true },
     });
 
     if (!plan) {
       throw new NotFoundException(`Plan de comida con ID ${id} no encontrado`);
     }
 
-    return this.formatMealPlan(plan);
+    return this.formatPlan(plan);
   }
 
-  // Actualizar un plan existente
+  // Actualizar un ítem del plan
   async update(id: string, dto: UpdateMealPlanDto) {
-    await this.findOne(id); // Valida que exista el plan
+    const current = await this.findOne(id);
 
-    // Si envían una nueva comida, validamos que exista
+    // Si se cambia la comida, tiene que existir
     if (dto.meal_id) {
-      const meal = await this.prisma.meals.findUnique({
-        where: { id: dto.meal_id },
+      await this.mealsService.findOne(dto.meal_id);
+    }
+
+    try {
+      const plan = await this.prisma.meal_plans.update({
+        where: { id },
+        data: {
+          meal_id: dto.meal_id,
+          dia_semana: dto.dia_semana,
+          tipo_comida: dto.tipo_comida,
+          hora_sugerida: dto.hora_sugerida
+            ? parseTime(dto.hora_sugerida)
+            : undefined,
+        },
+        include: { meals: true },
       });
-      if (!meal) {
-        throw new NotFoundException(`Comida con ID ${dto.meal_id} no encontrada`);
+
+      return this.formatPlan(plan);
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictException(
+          this.duplicateMessage(
+            dto.dia_semana ?? current.dia_semana,
+            dto.tipo_comida ?? current.tipo_comida,
+          ),
+        );
       }
+
+      throw error;
     }
-
-    const data: any = { ...dto };
-    if (dto.hora_sugerida) {
-      data.hora_sugerida = this.parseTime(dto.hora_sugerida);
-    }
-
-    const updated = await this.prisma.meal_plans.update({
-      where: { id },
-      data,
-      include: {
-        meals: true,
-      },
-    });
-
-    return this.formatMealPlan(updated);
   }
 
-  // Eliminar un plan por su ID
+  // Eliminar un ítem del plan
   async remove(id: string) {
     await this.findOne(id);
 
-    await this.prisma.meal_plans.delete({
-      where: { id },
-    });
+    await this.prisma.meal_plans.delete({ where: { id } });
 
     return { message: 'Plan de comida eliminado exitosamente', id };
   }
 }
-

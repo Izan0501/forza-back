@@ -1,6 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { CreateMealPlanDto } from './create-meal-plan.dto.js';
 
-// DTO para actualización parcial de un ítem del plan semanal
-export class UpdateMealPlanDto extends PartialType(CreateMealPlanDto) {}
-
+// Todos los campos son opcionales y no se puede cambiar el usuario dueño del plan
+export class UpdateMealPlanDto extends PartialType(
+  OmitType(CreateMealPlanDto, ['user_id'] as const),
+) {}

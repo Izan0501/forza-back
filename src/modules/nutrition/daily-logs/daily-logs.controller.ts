@@ -27,7 +27,7 @@ export class DailyLogsController {
   // GET /nutrition/logs?userId=UUID&fecha=YYYY-MM-DD -> Listar con filtros opcionales
   @Get()
   findAll(
-    @Query('userId') userId?: string,
+    @Query('userId', new ParseUUIDPipe({ optional: true })) userId?: string,
     @Query('fecha') fecha?: string,
   ) {
     return this.dailyLogsService.findAll(userId, fecha);

@@ -1,6 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { CreateDailyLogDto } from './create-daily-log.dto.js';
 
-// DTO para actualización parcial (por ejemplo cambiar consumida a true)
-export class UpdateDailyLogDto extends PartialType(CreateDailyLogDto) {}
-
+// Todos los campos son opcionales y no se puede cambiar el usuario dueño del registro
+export class UpdateDailyLogDto extends PartialType(
+  OmitType(CreateDailyLogDto, ['user_id'] as const),
+) {}

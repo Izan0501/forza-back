@@ -27,7 +27,7 @@ export class MealPlansController {
   // GET /nutrition/plans?userId=UUID&dia=Lunes -> Listar planes con filtros opcionales
   @Get()
   findAll(
-    @Query('userId') userId?: string,
+    @Query('userId', new ParseUUIDPipe({ optional: true })) userId?: string,
     @Query('dia') dia?: string,
   ) {
     return this.mealPlansService.findAll(userId, dia);

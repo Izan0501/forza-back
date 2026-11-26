@@ -7,3 +7,11 @@ export function isPrismaUniqueConstraintError(error: unknown): boolean {
     error.code === 'P2002'
   );
 }
+
+// P2003 es el código de Prisma para "este registro está siendo usado por otra tabla" (clave foránea).
+export function isPrismaForeignKeyError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2003'
+  );
+}

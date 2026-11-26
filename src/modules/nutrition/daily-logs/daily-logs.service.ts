@@ -1,116 +1,98 @@
 import {
-  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type {
+  daily_nutrition_logs,
+  meals,
+} from '../../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { isPrismaUniqueConstraintError } from '../../prisma/prisma-error.util.js';
+import { MealsService } from '../meals/meals.service.js';
+import { formatDate, formatMeal, parseDate } from '../nutrition.util.js';
 import { CreateDailyLogDto } from './dto/create-daily-log.dto.js';
 import { UpdateDailyLogDto } from './dto/update-daily-log.dto.js';
 
+// Un registro diario junto con los datos de su comida
+type DailyLogWithMeal = daily_nutrition_logs & { meals: meals };
+
+const DUPLICATE_MESSAGE =
+  'Ya existe un registro para este usuario con la misma comida, fecha y tipo de comida';
+
 @Injectable()
 export class DailyLogsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mealsService: MealsService,
+  ) {}
 
-  // Convierte string "YYYY-MM-DD" a Date UTC con 'Z'
-  private parseDate(fechaStr?: string): Date {
-    const fecha = fechaStr ?? new Date().toISOString().split('T')[0];
-    return new Date(`${fecha}T00:00:00.000Z`);
-  }
-
-  // Formatea la fecha y convierte los Decimal de meals a Number
-  private formatLog(log: any) {
-    const formatted: any = {
+  // Devuelve el registro con la fecha como "YYYY-MM-DD" y los números de la comida
+  private formatLog(log: DailyLogWithMeal) {
+    return {
       ...log,
-      fecha:
-        log.fecha instanceof Date
-          ? log.fecha.toISOString().split('T')[0]
-          : log.fecha,
+      fecha: formatDate(log.fecha),
+      meals: formatMeal(log.meals),
     };
-
-    if (log.meals) {
-      formatted.meal = {
-        ...log.meals,
-        calorias: Number(log.meals.calorias),
-        proteinas: Number(log.meals.proteinas),
-        carbohidratos: Number(log.meals.carbohidratos),
-        grasas: Number(log.meals.grasas),
-      };
-      formatted.meals = formatted.meal;
-    }
-
-    return formatted;
   }
 
-  // Crear un registro de comida diaria
+  // Registrar una comida del día
   async create(dto: CreateDailyLogDto) {
-    // 1. Validar que el usuario exista
+    // 1. El usuario y la comida tienen que existir
     const user = await this.prisma.users.findUnique({
       where: { id: dto.user_id },
     });
+
     if (!user) {
-      throw new NotFoundException(`Usuario con ID ${dto.user_id} no encontrado`);
+      throw new NotFoundException(
+        `Usuario con ID ${dto.user_id} no encontrado`,
+      );
     }
 
-    // 2. Validar que la comida exista
-    const meal = await this.prisma.meals.findUnique({
-      where: { id: dto.meal_id },
-    });
-    if (!meal) {
-      throw new NotFoundException(`Comida con ID ${dto.meal_id} no encontrada`);
-    }
+    await this.mealsService.findOne(dto.meal_id);
 
-    const targetDate = this.parseDate(dto.fecha);
-
+    // 2. Crear el registro (la base no permite repetir usuario + fecha + tipo + comida)
     try {
       const log = await this.prisma.daily_nutrition_logs.create({
         data: {
           user_id: dto.user_id,
           meal_id: dto.meal_id,
-          fecha: targetDate,
+          fecha: parseDate(dto.fecha),
           tipo_comida: dto.tipo_comida,
-          consumida: dto.consumida ?? false,
+          consumida: dto.consumida,
         },
-        include: {
-          meals: true,
-        },
+        include: { meals: true },
       });
 
       return this.formatLog(log);
-    } catch (error: any) {
-      // Clave única compuesta: @@unique([user_id, fecha, tipo_comida, meal_id])
-      if (error?.code === 'P2002') {
-        throw new BadRequestException(
-          'Ya existe un registro para este usuario con la misma comida, fecha y tipo de comida',
-        );
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictException(DUPLICATE_MESSAGE);
       }
+
       throw error;
     }
   }
 
-  // Listar registros con filtros opcionales (userId y fecha)
+  // Listar registros; userId y fecha son filtros opcionales
   async findAll(userId?: string, fecha?: string) {
-    const where: any = {};
-    if (userId) where.user_id = userId;
-    if (fecha) where.fecha = this.parseDate(fecha);
-
     const logs = await this.prisma.daily_nutrition_logs.findMany({
-      where,
-      include: {
-        meals: true,
+      where: {
+        user_id: userId,
+        fecha: fecha ? parseDate(fecha) : undefined,
       },
+      include: { meals: true },
       orderBy: { created_at: 'desc' },
     });
 
     return logs.map((log) => this.formatLog(log));
   }
 
-  // Obtener un registro por ID
+  // Buscar un registro por su ID
   async findOne(id: string) {
     const log = await this.prisma.daily_nutrition_logs.findUnique({
       where: { id },
-      include: {
-        meals: true,
-      },
+      include: { meals: true },
     });
 
     if (!log) {
@@ -122,45 +104,46 @@ export class DailyLogsService {
     return this.formatLog(log);
   }
 
-  // Actualizar un registro (por ejemplo cambiar consumida a true)
+  // Actualizar un registro (por ejemplo, marcar consumida: true)
   async update(id: string, dto: UpdateDailyLogDto) {
     await this.findOne(id);
 
-    // Si viene meal_id nuevo, validamos que exista
+    // Si se cambia la comida, tiene que existir
     if (dto.meal_id) {
-      const meal = await this.prisma.meals.findUnique({
-        where: { id: dto.meal_id },
+      await this.mealsService.findOne(dto.meal_id);
+    }
+
+    try {
+      const log = await this.prisma.daily_nutrition_logs.update({
+        where: { id },
+        data: {
+          meal_id: dto.meal_id,
+          tipo_comida: dto.tipo_comida,
+          consumida: dto.consumida,
+          fecha: dto.fecha ? parseDate(dto.fecha) : undefined,
+        },
+        include: { meals: true },
       });
-      if (!meal) {
-        throw new NotFoundException(`Comida con ID ${dto.meal_id} no encontrada`);
+
+      return this.formatLog(log);
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictException(DUPLICATE_MESSAGE);
       }
+
+      throw error;
     }
-
-    const data: any = { ...dto };
-    if (dto.fecha) {
-      data.fecha = this.parseDate(dto.fecha);
-    }
-
-    const updated = await this.prisma.daily_nutrition_logs.update({
-      where: { id },
-      data,
-      include: {
-        meals: true,
-      },
-    });
-
-    return this.formatLog(updated);
   }
 
   // Eliminar un registro
   async remove(id: string) {
     await this.findOne(id);
 
-    await this.prisma.daily_nutrition_logs.delete({
-      where: { id },
-    });
+    await this.prisma.daily_nutrition_logs.delete({ where: { id } });
 
-    return { message: 'Registro diario de nutrición eliminado exitosamente', id };
+    return {
+      message: 'Registro diario de nutrición eliminado exitosamente',
+      id,
+    };
   }
 }
-
