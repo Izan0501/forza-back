@@ -9,12 +9,12 @@ import { ProgressModule } from '../progress/progress.module.js';
 import { ExercisesModule } from '../exercises/exercises.module.js';
 import { RoutinesModule } from '../routines/routines.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { NutritionModule } from '../nutrition/nutrition.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
-
     ObserveModule.forRoot({
       appKey: 'YOUR_APP_KEY',
       appSecret: 'YOUR_APP_SECRET',
@@ -27,6 +27,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ExercisesModule,
     RoutinesModule,
     PrismaModule,
+    NutritionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
