@@ -7,13 +7,16 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { ProgressService } from './progress.service.js';
 import { CreateProgressDto } from './dto/create-progress.dto.js';
 import { UpdateProgressDto } from './dto/update-progress.dto.js';
 
 // El Controller recibe las peticiones HTTP y se las pasa al Service.
 // No tiene lógica de negocio ni consultas a la base de datos.
+@UseGuards(JwtAuthGuard)
 @Controller('progress')
 export class ProgressController {
   constructor(private readonly progressService: ProgressService) {}

@@ -8,12 +8,15 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { CreateDailyLogDto } from './dto/create-daily-log.dto.js';
 import { UpdateDailyLogDto } from './dto/update-daily-log.dto.js';
 import { DailyLogsService } from './daily-logs.service.js';
 
-// Controlador con ruta base /nutrition/logs
+// Controlador con ruta base /nutrition/logs (requiere token)
+@UseGuards(JwtAuthGuard)
 @Controller('nutrition/logs')
 export class DailyLogsController {
   constructor(private readonly dailyLogsService: DailyLogsService) {}

@@ -7,12 +7,15 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { CreateMealDto } from './dto/create-meal.dto.js';
 import { UpdateMealDto } from './dto/update-meal.dto.js';
 import { MealsService } from './meals.service.js';
 
-// Controlador con ruta base /nutrition/meals
+// Controlador con ruta base /nutrition/meals (requiere token)
+@UseGuards(JwtAuthGuard)
 @Controller('nutrition/meals')
 export class MealsController {
   constructor(private readonly mealsService: MealsService) {}

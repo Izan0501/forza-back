@@ -8,11 +8,14 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { ExercisesService } from './exercises.service.js';
 import { CreateExerciseDto } from './dto/create-exercise.dto.js';
 import { UpdateExerciseDto } from './dto/update-exercise.dto.js';
 
+@UseGuards(JwtAuthGuard)
 @Controller('exercises')
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) { }

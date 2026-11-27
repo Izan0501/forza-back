@@ -7,11 +7,14 @@ import {
   ParseUUIDPipe,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { CreateHydrationDto } from './dto/create-hydration.dto.js';
 import { HydrationService } from './hydration.service.js';
 
-// Controlador con ruta base /nutrition/hydration
+// Controlador con ruta base /nutrition/hydration (requiere token)
+@UseGuards(JwtAuthGuard)
 @Controller('nutrition/hydration')
 export class HydrationController {
   constructor(private readonly hydrationService: HydrationService) {}

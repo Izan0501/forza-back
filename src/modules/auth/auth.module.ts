@@ -14,6 +14,8 @@ if (!secret) {
   imports: [
     // Configura el JWT: con qué clave se firma y cuánto dura el token.
     JwtModule.register({
+      // global: JwtService queda disponible en toda la app (lo usa el JwtAuthGuard).
+      global: true,
       secret,
       signOptions: {
         // Ejemplos de JWT_EXPIRES_IN: "1d", "2h", "30m"

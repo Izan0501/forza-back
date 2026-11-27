@@ -8,11 +8,14 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { RoutinesService } from './routines.service.js';
 import { CreateRoutineDto } from './dto/create-routine.dto.js';
 import { UpdateRoutineDto } from './dto/update-routine.dto.js';
 
+@UseGuards(JwtAuthGuard)
 @Controller('routines')
 export class RoutinesController {
   constructor(private readonly routinesService: RoutinesService) { }

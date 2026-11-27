@@ -7,11 +7,14 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { MuscleGroupsService } from './muscle-groups.service.js';
 import { CreateMuscleGroupDto } from './dto/create-muscle-group.dto.js';
 import { UpdateMuscleGroupDto } from './dto/update-muscle-group.dto.js';
 
+@UseGuards(JwtAuthGuard)
 @Controller('muscle-groups')
 export class MuscleGroupsController {
   constructor(private readonly muscleGroupsService: MuscleGroupsService) {}

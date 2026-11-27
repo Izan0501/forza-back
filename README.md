@@ -99,12 +99,27 @@ src/
 
 Todos devuelven y reciben JSON.
 
+Solo `/auth/register` y `/auth/login` son públicas. **El resto de las rutas exige un token**: ver [Uso del token](#uso-del-token).
+
 ### Autenticación
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/auth/register` | Crea un usuario y devuelve el usuario y su token |
 | POST | `/auth/login` | Valida las credenciales y devuelve el usuario y su token |
+
+#### Uso del token
+
+1. Hacer `POST /auth/register` o `POST /auth/login` y copiar el valor de `access_token`.
+2. Enviarlo en cada request al resto de las rutas, en el header:
+
+   ```
+   Authorization: Bearer <access_token>
+   ```
+
+   En Postman o Insomnia: pestaña **Auth** → tipo **Bearer Token** → pegar el token.
+
+El archivo `src/modules/auth/jwt-auth.guard.ts` revisa el header antes de ejecutar cada controller. Si el token falta, está vencido o fue modificado, responde `401`.
 
 ### CRUD básico
 
@@ -191,7 +206,7 @@ Los datos de cada request se validan antes de llegar al service. Si se envía un
 |---|---|
 | 200 / 201 | La operación se realizó |
 | 400 | Datos inválidos, UUID mal formado o fecha inexistente |
-| 401 | Credenciales incorrectas en el login |
+| 401 | Credenciales incorrectas en el login, o token faltante, inválido o vencido |
 | 404 | El registro no existe |
 | 409 | Registro duplicado (por ejemplo, email ya registrado) o elemento en uso |
 
@@ -222,6 +237,6 @@ Los datos de un usuario (rutinas, favoritos, progreso y nutrición) se eliminan 
 
 ## Limitaciones
 
-- Las rutas todavía no están protegidas con JWT: el token se genera al registrarse o iniciar sesión, pero ningún endpoint lo exige.
+- El token confirma quién es el usuario, pero no se controla si el dato le pertenece: cualquier usuario con un token válido puede consultar o modificar los datos de otro.
 - La tabla `routine_exercises` existe en la base de datos, pero no tiene endpoints.
 - El proyecto no incluye tests automáticos.

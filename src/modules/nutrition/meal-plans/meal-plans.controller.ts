@@ -8,12 +8,15 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import { CreateMealPlanDto } from './dto/create-meal-plan.dto.js';
 import { UpdateMealPlanDto } from './dto/update-meal-plan.dto.js';
 import { MealPlansService } from './meal-plans.service.js';
 
-// Controlador con ruta base /nutrition/plans
+// Controlador con ruta base /nutrition/plans (requiere token)
+@UseGuards(JwtAuthGuard)
 @Controller('nutrition/plans')
 export class MealPlansController {
   constructor(private readonly mealPlansService: MealPlansService) {}
